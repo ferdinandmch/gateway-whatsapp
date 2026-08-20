@@ -1114,7 +1114,7 @@ A paginação por offset deve ser aplicada uniformemente em todos os endpoints d
 A V1 utilizará a versão fixa:
 
 ```txt
-atende-ai/evolution-api:v2.3.4
+evoapicloud/evolution-api:v2.3.4
 ```
 
 ## Justificativa
@@ -1281,6 +1281,55 @@ Os contratos (payloads de request/response) já estão definidos com exemplos JS
 ## Consequências
 
 Cada spec deve criar seus schemas em `app/schemas/` seguindo fielmente os contratos do doc 07. Os schemas não precisam de documento adicional prévio.
+
+---
+
+# DT-046 — Mapeamento de estados provider ↔ persistence
+
+## Decisão
+
+Os estados de instância no provider (retornados pela Evolution API) e os estados persistidos no banco de dados são conjuntos distintos com mapeamento explícito:
+
+**Provider (spec 002)** retorna: `connected`, `disconnected`, `connecting`, `not_found`
+**DB (spec 003)** armazena: `disconnected`, `connecting`, `connected`, `closed`
+
+Mapeamento:
+- Provider `connected` → DB `connected`
+- Provider `disconnected` → DB `disconnected`
+- Provider `connecting` → DB `connecting`
+- Provider `not_found` → Não é um estado de DB. Indica instância inexistente no provider. O service layer decide a ação (pode marcar como `closed` ou `disconnected` conforme contexto).
+- DB `closed` → Estado terminal interno. Instância encerrada no sistema. Ocorre quando: (a) admin remove a instância, ou (b) instância detectada como permanentemente indisponível no provider. Instâncias `closed` são combinadas com soft-delete (`deleted_at`).
+
+## Justificativa
+
+Provider states são respostas externas de uma API terceira; DB states representam o ciclo de vida interno da entidade. `not_found` é uma resposta, não um estado persistível. `closed` é um conceito de negócio (encerramento definitivo) que não existe na Evolution API.
+
+## Consequências
+
+- Spec 002 não precisa de alteração — seus estados estão corretos como "retorno do provider"
+- Spec 003 mantém `closed` como 4º estado terminal
+- O service layer (spec 004+) será responsável por traduzir respostas do provider em transições de estado no DB
+
+---
+
+## Alteração — DT implementada durante integração com Evolution API v2.3.4
+
+Durante a integração real com a Evolution API v2.3.4, foram identificados comportamentos que geraram ajustes em relação ao planejamento:
+
+**Criação de instância com webhook separado:**
+A Evolution API v2.3.4 não aceita o campo `webhook` embutido no payload de `POST /instance/create`. O webhook deve ser configurado em chamada separada via `POST /webhook/set/{instanceName}` após a criação.
+
+**Formato de eventos no payload do webhook:**
+A Evolution API v2.3.4 envia eventos em formato `MESSAGES_UPSERT` (maiúsculo com underscore), não em `messages.upsert` (minúsculo com ponto) como documentado em versões anteriores. O classifier (`app/webhooks/classifier.py`) normaliza o campo `event` antes de comparar:
+
+```python
+event = payload.get("event", "").upper().replace(".", "_")
+```
+
+Isso garante compatibilidade com qualquer variação de formato do campo de evento.
+
+**Headers do webhook por instância:**
+A configuração de segredo no webhook é feita via campo `headers` no payload do `/webhook/set/{instanceName}`, não via campo `secret`.
 
 ---
 
