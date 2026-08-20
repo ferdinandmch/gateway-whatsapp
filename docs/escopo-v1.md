@@ -538,3 +538,29 @@ A V1 do projeto será uma prova de conceito funcional de uma API própria de men
 O objetivo não é criar um SaaS completo neste momento, mas validar a base técnica do sistema: backend próprio, provider Evolution API, persistência, webhooks, n8n, logs e segurança básica.
 
 Com esse escopo validado, o projeto poderá evoluir posteriormente para painel administrativo, cobrança, múltiplos providers, chatbot, CRM, atendimento humano e modelo SaaS.
+
+---
+
+## Status da V1
+
+**Concluída.** Todas as 8 specs foram implementadas e o fluxo completo está funcionando em ambiente local com Docker Compose.
+
+```txt
+001 — Base do backend e infraestrutura local      ✅ Concluído
+002 — Provider Evolution API                       ✅ Concluído
+003 — Persistência e modelagem inicial             ✅ Concluído
+004 — Gestão de instâncias WhatsApp                ✅ Concluído
+005 — Envio de mensagens                           ✅ Concluído
+006 — Recebimento de webhooks                      ✅ Concluído
+007 — Encaminhamento para n8n                      ✅ Concluído
+008 — Segurança com API Key                        ✅ Concluído
+```
+
+---
+
+## Roadmap V2
+
+As funcionalidades abaixo foram identificadas durante a implementação da V1 e serão planejadas para a próxima versão:
+
+- **Intervalo de auto-reply** — Cooldown configurável por contato antes de reenviar a mensagem automática. Evita spam de saudação para o mesmo número em curto período.
+- **Dashboard / Frontend web** — Interface visual para operar o sistema: gerenciar clientes, instâncias, visualizar mensagens e eventos, configurar webhooks e monitorar o status do gateway.
